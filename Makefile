@@ -1,10 +1,8 @@
+JS = ./dist/js
 GOROOT = $(shell go env GOROOT)
 
 glue:
-	cp "$(GOROOT)/misc/wasm/wasm_exec.js" ./dist/exec.wasm.js
+	cp "$(GOROOT)/misc/wasm/wasm_exec.js" "$(JS)/exec.wasm.js"
     
 wasm: glue
-	GOOS=js GOARCH=wasm go build -o ./dist/main.wasm ./cmd/wasm
-
-dist: wasm
-	rm ./dist/.gitignore
+	GOOS=js GOARCH=wasm go build -o "$(JS)/main.wasm" ./cmd/wasm
