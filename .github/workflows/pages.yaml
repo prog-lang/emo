@@ -39,7 +39,7 @@ jobs:
           check-latest: true
 
       - name: Build Release
-        run: make wasm
+        run: make all
         
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1

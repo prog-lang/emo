@@ -20,6 +20,6 @@ elm-dev:
 	elm make --output "$(JS)/main.elm.js" ./src/Main.elm 
 
 elm-prod:
-	elm make  ./src/main.elm --optimize --output "$(JS)/main.elm.js"
+	elm make --optimize --output "$(JS)/main.elm.js" ./src/Main.elm
 
 all: go-wasm elm-prod
