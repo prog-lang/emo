@@ -2,17 +2,14 @@ package cpu
 
 import "log"
 
+//go:generate emo-gen-instruction-set ./instructions.go ./instruction_set.go
+
 // Length here is specified in bytes.
 const (
 	InstructionLength = 8
 	OpcodeLength      = InstructionLength / 2
 	OperandLength     = InstructionLength / 2
 )
-
-var instructionSet = [2]instruction{
-	HALT,
-	NOP,
-}
 
 type operation = func(*CPU)
 type instruction = func(operand [OperandLength]uint8) operation
@@ -31,20 +28,4 @@ func decodeOperation(index uint32, operand [OperandLength]uint8) operation {
 		return HALT(operand)
 	}
 	return instructionSet[index](operand)
-}
-
-/*
- * INSTRUCTIONS
- */
-
-func HALT(_ [OperandLength]uint8) operation {
-	return func(cpu *CPU) {
-		cpu.ok = false
-	}
-}
-
-func NOP(_ [OperandLength]uint8) operation {
-	return func(cpu *CPU) {
-		/* DO NOTHING */
-	}
 }
