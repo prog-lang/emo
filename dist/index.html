@@ -1,18 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <title>Emo CPU</title>
+
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Emo CPU</title>
+
     <script src="js/exec.wasm.js"></script>
-    <script src="js/setup.js"></script>
-    <script src="js/main.js"></script>
+    <script src="js/main.elm.js"></script>
+    <script src="js/setup.js" defer></script>
   </head>
   <body>
-    <pre><code id="app"></code></pre>
-    <input id="instruction" type="text" />
-    <button onclick="status()">Check CPU Status</button>
-    <button onclick="execute()">Execute</button>
+    <div id="app"></div>
   </body>
 </html>
