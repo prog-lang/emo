@@ -4,7 +4,7 @@ import (
 	"log"
 	"syscall/js"
 
-	"github.com/prog-lang/emo/cpu"
+	"github.com/prog-lang/emo/pkg/cpu"
 )
 
 func main() {

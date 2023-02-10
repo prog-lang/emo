@@ -9,6 +9,9 @@ glue:
 
 gen: tools
 	go generate ./...
+
+test: gen
+	go test -v ./pkg/...
     
 wasm: glue gen
 	GOOS=js GOARCH=wasm go build -o "$(JS)/main.wasm" ./cmd/wasm
