@@ -1,39 +1,26 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
+	"log"
 	"syscall/js"
+
+	"github.com/prog-lang/emo/pkg/cpu"
 )
 
-var jsonWrapper = js.FuncOf(func(this js.Value, args []js.Value) any {
-	if len(args) != 1 {
-		return "invalid number of arguments passed"
-	}
-	inputJSON := args[0].String()
-	fmt.Printf("input %s\n", inputJSON)
-	pretty, err := prettyJson(inputJSON)
-	if err != nil {
-		fmt.Printf("unable to convert to json %s\n", err)
-		return err.Error()
-	}
-	return pretty
-})
-
-func prettyJson(input string) (string, error) {
-	var raw any
-	if err := json.Unmarshal([]byte(input), &raw); err != nil {
-		return "", err
-	}
-	pretty, err := json.MarshalIndent(raw, "", "  ")
-	if err != nil {
-		return "", err
-	}
-	return string(pretty), nil
-}
-
 func main() {
-	fmt.Println("Go Web Assembly")
-	js.Global().Set("formatJSON", jsonWrapper)
+	log.Println("Setting up WASM ...")
+
+	machine := cpu.New()
+	js.Global().Set("cpuState",
+		js.FuncOf(func(this js.Value, args []js.Value) any {
+			return machine.String()
+		}))
+	js.Global().Set("cpuExecuteHexInstruction",
+		js.FuncOf(func(this js.Value, args []js.Value) any {
+			machine.ExecuteHexInstruction(args[0].String())
+			return nil
+		}))
+
+	log.Println("WASM fully set up and operational")
 	<-make(chan bool)
 }

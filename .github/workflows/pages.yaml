@@ -38,8 +38,13 @@ jobs:
           go-version: '^1.19'
           check-latest: true
 
+      - name: Setup Elm
+        uses: jorelali/setup-elm@v3
+        with:
+          elm-version: 0.19.1
+
       - name: Build Release
-        run: make wasm
+        run: make all
         
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1

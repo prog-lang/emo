@@ -1,8 +1,25 @@
 JS = ./dist/js
 GOROOT = $(shell go env GOROOT)
 
-glue:
+tools:
+	go install ./cmd/tools/emo-gen-instruction-set
+
+gen: tools
+	go generate ./...
+
+test: gen
+	go test -v ./pkg/...
+
+go-wasm-glue:
 	cp "$(GOROOT)/misc/wasm/wasm_exec.js" "$(JS)/exec.wasm.js"
     
-wasm: glue
-	GOOS=js GOARCH=wasm go build -o "$(JS)/main.wasm" ./cmd/wasm
+go-wasm: go-wasm-glue gen
+	GOOS=js GOARCH=wasm go build -o "$(JS)/main.go.wasm" ./cmd/wasm
+
+elm-dev:
+	elm make --output "$(JS)/main.elm.js" ./src/Main.elm 
+
+elm-prod:
+	elm make --optimize --output "$(JS)/main.elm.js" ./src/Main.elm
+
+all: go-wasm elm-prod
