@@ -2,6 +2,7 @@ port module Main exposing (..)
 
 import Browser exposing (Document)
 import Browser.Events as Events
+import Editor
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -22,7 +23,7 @@ type alias Flags =
 
 
 type alias Model =
-    { program : String
+    { editor : Editor.Model
     , cpuState : String
     }
 
@@ -61,7 +62,7 @@ init _ =
 
 initModel : Model
 initModel =
-    { program = ""
+    { editor = Editor.init
     , cpuState = "UNKNOWN"
     }
 
@@ -79,11 +80,7 @@ view model =
 
 viewBody : Model -> List (Html Msg)
 viewBody model =
-    [ h1 [] [ text "CPU STATE:" ]
-    , pre [] [ code [] [ text model.cpuState ] ]
-    , h1 [] [ text "PROGRAM:" ]
-    , pre [] [ code [] [ text model.program ] ]
-    ]
+    Editor.view model.editor
 
 
 
@@ -112,20 +109,34 @@ updateOnKeyboardEvent event model =
 
 updateOnKeyDown : KeyboardEvent -> String -> Model -> ( Model, Cmd Msg )
 updateOnKeyDown event key model =
+    let
+        firstChar =
+            String.toList >> List.head >> Maybe.withDefault ' '
+    in
     case key of
         "Enter" ->
             if event.ctrlKey then
-                ( model, cpuExecuteHexInstruction model.program )
+                ( model
+                , Editor.getText model.editor
+                    |> String.trim
+                    |> cpuExecuteHexInstruction
+                )
 
             else
-                ( { model | program = model.program ++ "\n" }, Cmd.none )
-
-        "Backspace" ->
-            ( { model | program = String.dropRight 1 model.program }, Cmd.none )
+                ( { model | editor = Editor.update Editor.Enter model.editor }
+                , Cmd.none
+                )
 
         other ->
             if String.length other == 1 then
-                ( { model | program = model.program ++ other }, Cmd.none )
+                ( { model
+                    | editor =
+                        Editor.update
+                            (Editor.Symbol <| firstChar other)
+                            model.editor
+                  }
+                , Cmd.none
+                )
 
             else
                 ( model, Cmd.none )
