@@ -41,4 +41,4 @@ Go to <http://localhost:8000> to see it in action!
 ## Contributing
 
 You can help develop and improve Emo. Read [CONTRIBUTING.md](CONTRIBUTING.md) to
-lear more!
+learn more!
