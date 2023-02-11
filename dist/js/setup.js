@@ -3,7 +3,7 @@ const GO_WASM_INSTANCE_READY = "GO_WASM_INSTANCE_READY";
 function setupGoWebAssemblyInstance() {
   const go = new Go();
   WebAssembly.instantiateStreaming(
-    fetch("js/main.go.wasm"),
+    fetch("wasm/main.go.wasm"),
     go.importObject
   ).then((program) => {
     go.run(program.instance);

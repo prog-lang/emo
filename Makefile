@@ -1,3 +1,4 @@
+WASM = ./dist/wasm
 JS = ./dist/js
 GOROOT = $(shell go env GOROOT)
 
@@ -11,10 +12,10 @@ test: gen
 	go test -v ./pkg/...
 
 go-wasm-glue:
-	cp "$(GOROOT)/misc/wasm/wasm_exec.js" "$(JS)/exec.wasm.js"
+	cp "$(GOROOT)/misc/wasm/wasm_exec.js" "$(JS)/exec.go.wasm.js"
     
 go-wasm: go-wasm-glue gen
-	GOOS=js GOARCH=wasm go build -o "$(JS)/main.go.wasm" ./cmd/wasm
+	GOOS=js GOARCH=wasm go build -o "$(WASM)/main.go.wasm" ./cmd/wasm
 
 elm-dev:
 	elm make --output "$(JS)/main.elm.js" ./src/Main.elm 
