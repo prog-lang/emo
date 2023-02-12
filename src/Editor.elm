@@ -1,13 +1,21 @@
-module Editor exposing (Model, Msg(..), getText, init, update, view)
+module Editor exposing (Model, Move(..), Msg(..), getText, init, update, view)
 
 import Array exposing (Array)
-import Html exposing (Html, code, div, pre, text)
+import Html exposing (Html, code, div, pre, span, text)
 import Html.Attributes exposing (style)
 
 
 type Msg
     = Symbol Char
     | Enter
+    | Move Move
+
+
+type Move
+    = Left
+    | Right
+    | Up
+    | Down
 
 
 type alias Model =
@@ -47,6 +55,26 @@ lineToString =
     Array.toList >> String.fromList >> (\string -> string ++ "\n")
 
 
+lineToHtml : Int -> Line -> List (Html msg)
+lineToHtml cursor =
+    let
+        background index =
+            if index == cursor then
+                [ style "background-color" "black"
+                , style "color" "white"
+                ]
+
+            else
+                [ style "background-color" "white" ]
+
+        makeSpan index char =
+            span (background index) [ char |> String.fromChar |> text ]
+    in
+    Array.push '\n'
+        >> Array.indexedMap makeSpan
+        >> Array.toList
+
+
 view : Model -> List (Html msg)
 view model =
     let
@@ -69,7 +97,18 @@ view model =
         listOfLines =
             model.lines
                 |> Array.toList
-                |> List.map (lineToString >> text)
+                |> List.indexedMap
+                    (\lineNumber line ->
+                        lineToHtml
+                            (if lineNumber == model.line then
+                                model.col
+
+                             else
+                                -1
+                            )
+                            line
+                    )
+                |> List.concat
     in
     div
         [ style "display" "flex"
@@ -98,6 +137,8 @@ update msg model =
         Symbol char ->
             insert char model
 
+        -- TODO: at the moment, pressing Enter simply adds a new line at the
+        -- very end of the file. Implement Enter behavious properly.
         Enter ->
             { model
                 | lines = Array.push emptyLine model.lines
@@ -105,20 +146,60 @@ update msg model =
                 , col = 0
             }
 
+        Move move ->
+            updateOnMove move model
+
+
+updateOnMove : Move -> Model -> Model
+updateOnMove move model =
+    let
+        currentLine =
+            Array.get model.line model.lines |> Maybe.withDefault emptyLine
+    in
+    case move of
+        Left ->
+            if model.col > 0 then
+                { model | col = model.col - 1 }
+
+            else
+                model
+
+        Right ->
+            if model.col < Array.length currentLine then
+                { model | col = model.col + 1 }
+
+            else
+                model
+
+        Up ->
+            if model.line > 0 then
+                { model | line = model.line - 1 }
+
+            else
+                model
+
+        Down ->
+            if model.line < Array.length model.lines - 1 then
+                { model | line = model.line + 1 }
+
+            else
+                model
+
 
 insert : Char -> Model -> Model
 insert char model =
     let
-        lastLineIndex =
-            Array.length model.lines - 1
+        currentLine =
+            Array.get model.line model.lines |> Maybe.withDefault Array.empty
 
-        newLastLine =
-            model.lines
-                |> Array.get lastLineIndex
-                |> Maybe.withDefault emptyLine
-                |> Array.push char
+        lineAfterInsert =
+            if model.col >= Array.length currentLine then
+                Array.push char currentLine
+
+            else
+                Array.set model.col char currentLine
     in
     { model
-        | lines = Array.set lastLineIndex newLastLine model.lines
+        | lines = Array.set model.line lineAfterInsert model.lines
         , col = model.col + 1
     }

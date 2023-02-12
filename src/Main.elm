@@ -2,7 +2,7 @@ port module Main exposing (..)
 
 import Browser exposing (Document)
 import Browser.Events as Events
-import Editor
+import Editor exposing (Move(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -126,6 +126,42 @@ updateOnKeyDown event key model =
                 ( { model | editor = Editor.update Editor.Enter model.editor }
                 , Cmd.none
                 )
+
+        -- TODO: implement proper Backspace behaviour.
+        "Backspace" ->
+            ( { model
+                | editor = Editor.update (Editor.Move Left) model.editor
+              }
+            , Cmd.none
+            )
+
+        "ArrowLeft" ->
+            ( { model
+                | editor = Editor.update (Editor.Move Left) model.editor
+              }
+            , Cmd.none
+            )
+
+        "ArrowRight" ->
+            ( { model
+                | editor = Editor.update (Editor.Move Right) model.editor
+              }
+            , Cmd.none
+            )
+
+        "ArrowUp" ->
+            ( { model
+                | editor = Editor.update (Editor.Move Up) model.editor
+              }
+            , Cmd.none
+            )
+
+        "ArrowDown" ->
+            ( { model
+                | editor = Editor.update (Editor.Move Down) model.editor
+              }
+            , Cmd.none
+            )
 
         other ->
             if String.length other == 1 then
