@@ -2,7 +2,8 @@ port module Main exposing (..)
 
 import Browser exposing (Document)
 import Browser.Events as Events
-import Editor exposing (Move(..))
+import Char exposing (isHexDigit)
+import Editor
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -35,6 +36,7 @@ type alias Model =
 type Msg
     = KeyboardEvent Keyboard.Event.KeyboardEvent
     | GotCpuState String
+    | EditorMsg Editor.Msg
 
 
 
@@ -81,6 +83,7 @@ view model =
 viewBody : Model -> List (Html Msg)
 viewBody model =
     Editor.view model.editor
+        |> List.map (Html.map EditorMsg)
 
 
 
@@ -96,6 +99,27 @@ update msg model =
         GotCpuState state ->
             ( { model | cpuState = state }, Cmd.none )
 
+        EditorMsg editorMsg ->
+            updateOnEditorMsg editorMsg model
+
+
+updateOnEditorMsg : Editor.Msg -> Model -> ( Model, Cmd Msg )
+updateOnEditorMsg editorMsg model =
+    let
+        cmd =
+            case editorMsg of
+                Editor.LineClicked line ->
+                    line
+                        |> String.filter isHexDigit
+                        |> cpuExecuteHexInstruction
+
+                _ ->
+                    Cmd.none
+    in
+    ( { model | editor = Editor.update editorMsg model.editor }
+    , cmd
+    )
+
 
 updateOnKeyboardEvent : KeyboardEvent -> Model -> ( Model, Cmd Msg )
 updateOnKeyboardEvent event model =
@@ -108,24 +132,16 @@ updateOnKeyboardEvent event model =
 
 
 updateOnKeyDown : KeyboardEvent -> String -> Model -> ( Model, Cmd Msg )
-updateOnKeyDown event key model =
+updateOnKeyDown _ key model =
     let
         firstChar =
             String.toList >> List.head >> Maybe.withDefault ' '
     in
     case key of
         "Enter" ->
-            if event.ctrlKey then
-                ( model
-                , Editor.getText model.editor
-                    |> String.trim
-                    |> cpuExecuteHexInstruction
-                )
-
-            else
-                ( { model | editor = Editor.update Editor.Enter model.editor }
-                , Cmd.none
-                )
+            ( { model | editor = Editor.update Editor.Enter model.editor }
+            , Cmd.none
+            )
 
         "Backspace" ->
             ( { model
@@ -136,28 +152,28 @@ updateOnKeyDown event key model =
 
         "ArrowLeft" ->
             ( { model
-                | editor = Editor.update (Editor.Move Left) model.editor
+                | editor = Editor.update (Editor.Move Editor.Left) model.editor
               }
             , Cmd.none
             )
 
         "ArrowRight" ->
             ( { model
-                | editor = Editor.update (Editor.Move Right) model.editor
+                | editor = Editor.update (Editor.Move Editor.Right) model.editor
               }
             , Cmd.none
             )
 
         "ArrowUp" ->
             ( { model
-                | editor = Editor.update (Editor.Move Up) model.editor
+                | editor = Editor.update (Editor.Move Editor.Up) model.editor
               }
             , Cmd.none
             )
 
         "ArrowDown" ->
             ( { model
-                | editor = Editor.update (Editor.Move Down) model.editor
+                | editor = Editor.update (Editor.Move Editor.Down) model.editor
               }
             , Cmd.none
             )

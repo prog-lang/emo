@@ -1,10 +1,19 @@
-module Editor exposing (Model, Move(..), Msg(..), getText, init, update, view)
+module Editor exposing
+    ( Model
+    , Move(..)
+    , Msg(..)
+    , getText
+    , init
+    , update
+    , view
+    )
 
 import Array exposing (Array)
 import Array.Extra as Arrayx
 import Basics.Extra exposing (atMost, flip)
 import Html exposing (Html, code, div, pre, span, text)
 import Html.Attributes exposing (style)
+import Html.Events exposing (onClick)
 
 
 type Msg
@@ -12,6 +21,7 @@ type Msg
     | Enter
     | Move Move
     | Backspace
+    | LineClicked String
 
 
 type Move
@@ -68,7 +78,7 @@ getCurrentLine model =
     getLine model.row model
 
 
-view : Model -> List (Html msg)
+view : Model -> List (Html Msg)
 view model =
     let
         leftPadding =
@@ -79,6 +89,17 @@ view model =
                 |> (+) 1
                 |> flip String.padLeft ' '
 
+        clickableLineNumber index line =
+            span
+                [ model
+                    |> getLine index
+                    |> lineToString
+                    |> LineClicked
+                    |> onClick
+                , style "cursor" "pointer"
+                ]
+                [ text line ]
+
         lineNumbers =
             model.lines
                 |> Array.length
@@ -86,7 +107,8 @@ view model =
                 |> List.map String.fromInt
                 |> List.map leftPadding
                 |> List.map (flip (++) " ")
-                |> String.join "\n"
+                |> List.indexedMap clickableLineNumber
+                |> List.intersperse (text "\n")
 
         listOfLines =
             model.lines
@@ -115,7 +137,7 @@ view model =
             , style "min-height" "100%"
             , style "height" "max-content"
             ]
-            [ code [] [ text lineNumbers ] ]
+            [ code [] lineNumbers ]
         , pre
             [ style "min-height" "100%"
             , style "height" "max-content"
@@ -184,6 +206,9 @@ update msg model =
             else
                 -- We've reached the beginning of the file => do nothing.
                 model
+
+        LineClicked _ ->
+            model
 
 
 updateOnMove : Move -> Model -> Model
