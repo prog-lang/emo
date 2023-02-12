@@ -127,10 +127,9 @@ updateOnKeyDown event key model =
                 , Cmd.none
                 )
 
-        -- TODO: implement proper Backspace behaviour.
         "Backspace" ->
             ( { model
-                | editor = Editor.update (Editor.Move Left) model.editor
+                | editor = Editor.update Editor.Backspace model.editor
               }
             , Cmd.none
             )

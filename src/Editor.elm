@@ -1,6 +1,7 @@
 module Editor exposing (Model, Move(..), Msg(..), getText, init, update, view)
 
 import Array exposing (Array)
+import Array.Extra as Arrayx
 import Html exposing (Html, code, div, pre, span, text)
 import Html.Attributes exposing (style)
 
@@ -9,6 +10,7 @@ type Msg
     = Symbol Char
     | Enter
     | Move Move
+    | Backspace
 
 
 type Move
@@ -20,21 +22,25 @@ type Move
 
 type alias Model =
     { lines : Array Line
-    , line : Int
+    , row : Int
     , col : Int
     }
 
 
-type alias Line =
-    Array Char
+
+-- CREATE
 
 
 init : Model
 init =
     { lines = emptyLine |> List.singleton |> Array.fromList
-    , line = 0
+    , row = 0
     , col = 0
     }
+
+
+
+-- QUERY
 
 
 getText : Model -> String
@@ -45,34 +51,19 @@ getText model =
         |> String.concat
 
 
-emptyLine : Line
-emptyLine =
-    Array.empty
+getLine : Int -> Model -> Line
+getLine index model =
+    Array.get index model.lines
+        |> Maybe.withDefault emptyLine
 
 
-lineToString : Line -> String
-lineToString =
-    Array.toList >> String.fromList >> (\string -> string ++ "\n")
+getCurrentLine : Model -> Line
+getCurrentLine model =
+    getLine model.row model
 
 
-lineToHtml : Int -> Line -> List (Html msg)
-lineToHtml cursor =
-    let
-        background index =
-            if index == cursor then
-                [ style "background-color" "black"
-                , style "color" "white"
-                ]
 
-            else
-                [ style "background-color" "white" ]
-
-        makeSpan index char =
-            span (background index) [ char |> String.fromChar |> text ]
-    in
-    Array.push '\n'
-        >> Array.indexedMap makeSpan
-        >> Array.toList
+-- TODO: display cursor when at end of line.
 
 
 view : Model -> List (Html msg)
@@ -100,7 +91,7 @@ view model =
                 |> List.indexedMap
                     (\lineNumber line ->
                         lineToHtml
-                            (if lineNumber == model.line then
+                            (if lineNumber == model.row then
                                 model.col
 
                              else
@@ -131,31 +122,55 @@ view model =
         |> List.singleton
 
 
+
+-- UPDATE
+
+
 update : Msg -> Model -> Model
 update msg model =
+    let
+        curLine =
+            getCurrentLine model
+
+        curLineAfterCursor =
+            Arrayx.sliceFrom model.col curLine
+
+        curLineBeforeCursor =
+            Arrayx.sliceUntil model.col curLine
+    in
     case msg of
         Symbol char ->
             insert char model
 
-        -- TODO: at the moment, pressing Enter simply adds a new line at the
-        -- very end of the file. Implement Enter behavious properly.
         Enter ->
             { model
-                | lines = Array.push emptyLine model.lines
-                , line = model.line + 1
+                | lines =
+                    model.lines
+                        |> Arrayx.insertAt (model.row + 1) curLineAfterCursor
+                        |> Array.set model.row curLineBeforeCursor
+                , row = model.row + 1
                 , col = 0
             }
 
         Move move ->
             updateOnMove move model
 
+        Backspace ->
+            if model.col > 0 then
+                { model
+                    | lines =
+                        curLineAfterCursor
+                            |> Array.append (Arrayx.pop curLineBeforeCursor)
+                            |> (\line -> Array.set model.row line model.lines)
+                    , col = model.col - 1
+                }
+
+            else
+                model
+
 
 updateOnMove : Move -> Model -> Model
 updateOnMove move model =
-    let
-        currentLine =
-            Array.get model.line model.lines |> Maybe.withDefault emptyLine
-    in
     case move of
         Left ->
             if model.col > 0 then
@@ -165,22 +180,32 @@ updateOnMove move model =
                 model
 
         Right ->
-            if model.col < Array.length currentLine then
+            if model.col < Array.length (getCurrentLine model) then
                 { model | col = model.col + 1 }
 
             else
                 model
 
         Up ->
-            if model.line > 0 then
-                { model | line = model.line - 1 }
+            if model.row > 0 then
+                { model
+                    | row = model.row - 1
+                    , col =
+                        min (Array.length <| getLine (model.row - 1) model)
+                            (Array.length <| getCurrentLine model)
+                }
 
             else
                 model
 
         Down ->
-            if model.line < Array.length model.lines - 1 then
-                { model | line = model.line + 1 }
+            if model.row < Array.length model.lines - 1 then
+                { model
+                    | row = model.row + 1
+                    , col =
+                        min (Array.length <| getLine (model.row + 1) model)
+                            (Array.length <| getCurrentLine model)
+                }
 
             else
                 model
@@ -189,17 +214,51 @@ updateOnMove move model =
 insert : Char -> Model -> Model
 insert char model =
     let
-        currentLine =
-            Array.get model.line model.lines |> Maybe.withDefault Array.empty
+        curLine =
+            getCurrentLine model
 
         lineAfterInsert =
-            if model.col >= Array.length currentLine then
-                Array.push char currentLine
-
-            else
-                Array.set model.col char currentLine
+            Arrayx.insertAt model.col char curLine
     in
     { model
-        | lines = Array.set model.line lineAfterInsert model.lines
+        | lines = Array.set model.row lineAfterInsert model.lines
         , col = model.col + 1
     }
+
+
+
+-- LINE
+
+
+type alias Line =
+    Array Char
+
+
+emptyLine : Line
+emptyLine =
+    Array.empty
+
+
+lineToString : Line -> String
+lineToString =
+    Array.toList >> String.fromList >> (\string -> string ++ "\n")
+
+
+lineToHtml : Int -> Line -> List (Html msg)
+lineToHtml cursor =
+    let
+        background index =
+            if index == cursor then
+                [ style "background-color" "black"
+                , style "color" "white"
+                ]
+
+            else
+                [ style "background-color" "white" ]
+
+        makeSpan index char =
+            span (background index) [ char |> String.fromChar |> text ]
+    in
+    Array.push '\n'
+        >> Array.indexedMap makeSpan
+        >> Array.toList
