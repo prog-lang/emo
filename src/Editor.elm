@@ -2,6 +2,7 @@ module Editor exposing (Model, Move(..), Msg(..), getText, init, update, view)
 
 import Array exposing (Array)
 import Array.Extra as Arrayx
+import Basics.Extra exposing (atMost, flip)
 import Html exposing (Html, code, div, pre, span, text)
 import Html.Attributes exposing (style)
 
@@ -51,6 +52,11 @@ getText model =
         |> String.concat
 
 
+getLineLength : Int -> Model -> Int
+getLineLength index model =
+    getLine index model |> Array.length
+
+
 getLine : Int -> Model -> Line
 getLine index model =
     Array.get index model.lines
@@ -62,10 +68,6 @@ getCurrentLine model =
     getLine model.row model
 
 
-
--- TODO: display cursor when at end of line.
-
-
 view : Model -> List (Html msg)
 view model =
     let
@@ -75,14 +77,15 @@ view model =
                 |> String.fromInt
                 |> String.length
                 |> (+) 1
+                |> flip String.padLeft ' '
 
         lineNumbers =
             model.lines
                 |> Array.length
                 |> List.range 1
                 |> List.map String.fromInt
-                |> List.map (String.padLeft leftPadding ' ')
-                |> List.map (\s -> s ++ " ")
+                |> List.map leftPadding
+                |> List.map (flip (++) " ")
                 |> String.join "\n"
 
         listOfLines =
@@ -157,13 +160,9 @@ update msg model =
 
         Backspace ->
             if model.col > 0 then
-                { model
-                    | lines =
-                        curLineAfterCursor
-                            |> Array.append (Arrayx.pop curLineBeforeCursor)
-                            |> (\line -> Array.set model.row line model.lines)
-                    , col = model.col - 1
-                }
+                model
+                    |> setCurrentLine (Arrayx.removeAt (model.col - 1) curLine)
+                    |> shiftCol -1
 
             else
                 model
@@ -171,59 +170,59 @@ update msg model =
 
 updateOnMove : Move -> Model -> Model
 updateOnMove move model =
+    let
+        iff check newModel =
+            if check then
+                newModel
+
+            else
+                model
+    in
     case move of
         Left ->
-            if model.col > 0 then
+            iff (model.col > 0)
                 { model | col = model.col - 1 }
 
-            else
-                model
-
         Right ->
-            if model.col < Array.length (getCurrentLine model) then
+            iff (model.col < getLineLength model.row model)
                 { model | col = model.col + 1 }
 
-            else
-                model
-
         Up ->
-            if model.row > 0 then
+            iff (model.row > 0)
                 { model
                     | row = model.row - 1
                     , col =
-                        min (Array.length <| getLine (model.row - 1) model)
-                            (Array.length <| getCurrentLine model)
+                        atMost (getLineLength (model.row - 1) model)
+                            (getLineLength model.row model)
                 }
 
-            else
-                model
-
         Down ->
-            if model.row < Array.length model.lines - 1 then
+            iff (model.row < Array.length model.lines - 1)
                 { model
                     | row = model.row + 1
                     , col =
-                        min (Array.length <| getLine (model.row + 1) model)
-                            (Array.length <| getCurrentLine model)
+                        atMost (getLineLength (model.row + 1) model)
+                            (getLineLength model.row model)
                 }
-
-            else
-                model
 
 
 insert : Char -> Model -> Model
 insert char model =
     let
-        curLine =
-            getCurrentLine model
-
         lineAfterInsert =
-            Arrayx.insertAt model.col char curLine
+            Arrayx.insertAt model.col char <| getCurrentLine model
     in
-    { model
-        | lines = Array.set model.row lineAfterInsert model.lines
-        , col = model.col + 1
-    }
+    model |> setCurrentLine lineAfterInsert |> shiftCol 1
+
+
+setCurrentLine : Line -> Model -> Model
+setCurrentLine line model =
+    { model | lines = Array.set model.row line model.lines }
+
+
+shiftCol : Int -> Model -> Model
+shiftCol int model =
+    { model | col = model.col + int }
 
 
 
@@ -268,5 +267,4 @@ lineToHtml cursor =
     in
     addCursorIfNeeded
         >> Array.push '\n'
-        >> Array.indexedMap makeSpan
-        >> Array.toList
+        >> Arrayx.indexedMapToList makeSpan
