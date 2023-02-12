@@ -88,18 +88,18 @@ view model =
         listOfLines =
             model.lines
                 |> Array.toList
-                |> List.indexedMap
-                    (\lineNumber line ->
-                        lineToHtml
-                            (if lineNumber == model.row then
-                                model.col
-
-                             else
-                                -1
-                            )
-                            line
-                    )
+                |> List.indexedMap makeLine
                 |> List.concat
+
+        makeLine row line =
+            lineToHtml
+                (if row == model.row then
+                    model.col
+
+                 else
+                    -1
+                )
+                line
     in
     div
         [ style "display" "flex"
@@ -247,6 +247,13 @@ lineToString =
 lineToHtml : Int -> Line -> List (Html msg)
 lineToHtml cursor =
     let
+        addCursorIfNeeded line =
+            if cursor >= Array.length line then
+                Array.push ' ' line
+
+            else
+                line
+
         background index =
             if index == cursor then
                 [ style "background-color" "black"
@@ -259,6 +266,7 @@ lineToHtml cursor =
         makeSpan index char =
             span (background index) [ char |> String.fromChar |> text ]
     in
-    Array.push '\n'
+    addCursorIfNeeded
+        >> Array.push '\n'
         >> Array.indexedMap makeSpan
         >> Array.toList
