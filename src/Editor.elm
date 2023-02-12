@@ -132,6 +132,9 @@ view model =
 update : Msg -> Model -> Model
 update msg model =
     let
+        prevLine =
+            getLine (model.row - 1) model
+
         curLine =
             getCurrentLine model
 
@@ -160,11 +163,26 @@ update msg model =
 
         Backspace ->
             if model.col > 0 then
+                -- Normal case => simply erase one char before the cursor.
                 model
                     |> setCurrentLine (Arrayx.removeAt (model.col - 1) curLine)
                     |> shiftCol -1
 
+            else if model.row > 0 then
+                -- We've reached the left border of a line => erase that line.
+                { model
+                    | lines =
+                        model.lines
+                            |> Array.set
+                                (model.row - 1)
+                                (Array.append prevLine curLine)
+                            |> Arrayx.removeAt model.row
+                    , row = model.row - 1
+                    , col = getLine (model.row - 1) model |> Array.length
+                }
+
             else
+                -- We've reached the beginning of the file => do nothing.
                 model
 
 
