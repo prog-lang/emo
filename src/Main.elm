@@ -2,6 +2,8 @@ port module Main exposing (..)
 
 import Browser exposing (Document)
 import Browser.Events as Events
+import Char exposing (isHexDigit)
+import Editor
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -22,7 +24,7 @@ type alias Flags =
 
 
 type alias Model =
-    { program : String
+    { editor : Editor.Model
     , cpuState : String
     }
 
@@ -34,6 +36,7 @@ type alias Model =
 type Msg
     = KeyboardEvent Keyboard.Event.KeyboardEvent
     | GotCpuState String
+    | EditorMsg Editor.Msg
 
 
 
@@ -61,7 +64,7 @@ init _ =
 
 initModel : Model
 initModel =
-    { program = ""
+    { editor = Editor.init
     , cpuState = "UNKNOWN"
     }
 
@@ -79,11 +82,8 @@ view model =
 
 viewBody : Model -> List (Html Msg)
 viewBody model =
-    [ h1 [] [ text "CPU STATE:" ]
-    , pre [] [ code [] [ text model.cpuState ] ]
-    , h1 [] [ text "PROGRAM:" ]
-    , pre [] [ code [] [ text model.program ] ]
-    ]
+    Editor.view model.editor
+        |> List.map (Html.map EditorMsg)
 
 
 
@@ -99,6 +99,27 @@ update msg model =
         GotCpuState state ->
             ( { model | cpuState = state }, Cmd.none )
 
+        EditorMsg editorMsg ->
+            updateOnEditorMsg editorMsg model
+
+
+updateOnEditorMsg : Editor.Msg -> Model -> ( Model, Cmd Msg )
+updateOnEditorMsg editorMsg model =
+    let
+        cmd =
+            case editorMsg of
+                Editor.LineClicked line ->
+                    line
+                        |> String.filter isHexDigit
+                        |> cpuExecuteHexInstruction
+
+                _ ->
+                    Cmd.none
+    in
+    ( { model | editor = Editor.update editorMsg model.editor }
+    , cmd
+    )
+
 
 updateOnKeyboardEvent : KeyboardEvent -> Model -> ( Model, Cmd Msg )
 updateOnKeyboardEvent event model =
@@ -111,21 +132,62 @@ updateOnKeyboardEvent event model =
 
 
 updateOnKeyDown : KeyboardEvent -> String -> Model -> ( Model, Cmd Msg )
-updateOnKeyDown event key model =
+updateOnKeyDown _ key model =
+    let
+        firstChar =
+            String.toList >> List.head >> Maybe.withDefault ' '
+    in
     case key of
         "Enter" ->
-            if event.ctrlKey then
-                ( model, cpuExecuteHexInstruction model.program )
-
-            else
-                ( { model | program = model.program ++ "\n" }, Cmd.none )
+            ( { model | editor = Editor.update Editor.Enter model.editor }
+            , Cmd.none
+            )
 
         "Backspace" ->
-            ( { model | program = String.dropRight 1 model.program }, Cmd.none )
+            ( { model
+                | editor = Editor.update Editor.Backspace model.editor
+              }
+            , Cmd.none
+            )
+
+        "ArrowLeft" ->
+            ( { model
+                | editor = Editor.update (Editor.Move Editor.Left) model.editor
+              }
+            , Cmd.none
+            )
+
+        "ArrowRight" ->
+            ( { model
+                | editor = Editor.update (Editor.Move Editor.Right) model.editor
+              }
+            , Cmd.none
+            )
+
+        "ArrowUp" ->
+            ( { model
+                | editor = Editor.update (Editor.Move Editor.Up) model.editor
+              }
+            , Cmd.none
+            )
+
+        "ArrowDown" ->
+            ( { model
+                | editor = Editor.update (Editor.Move Editor.Down) model.editor
+              }
+            , Cmd.none
+            )
 
         other ->
             if String.length other == 1 then
-                ( { model | program = model.program ++ other }, Cmd.none )
+                ( { model
+                    | editor =
+                        Editor.update
+                            (Editor.Symbol <| firstChar other)
+                            model.editor
+                  }
+                , Cmd.none
+                )
 
             else
                 ( model, Cmd.none )
