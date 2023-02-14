@@ -15,7 +15,7 @@ function setupElm() {
   const app = Elm.Main.init({
     node: document.getElementById("app"),
   });
-  app.ports.cpuState.send(cpuState());
+  app.ports.cpuState.send(cpu.string());
   app.ports.cpuExecuteHexInstruction.subscribe((hex) => {
     cpuExecuteHexInstruction(hex);
     setTimeout(() => app.ports.cpuState.send(cpuState()), 10);

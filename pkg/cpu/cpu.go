@@ -20,13 +20,14 @@ type CPU struct {
 	ir  operation // Instruction register
 }
 
-func New() *CPU {
-	return new(CPU).Init()
+func New() (cpu *CPU) {
+	cpu = new(CPU)
+	cpu.Init()
+	return
 }
 
-func (cpu *CPU) Init() *CPU {
+func (cpu *CPU) Init() {
 	cpu.ok = true
-	return cpu
 }
 
 func (cpu *CPU) String() string {
