@@ -79,7 +79,7 @@ func (cpu *CPU) decode() {
 		operand[i] = cpu.mem[cpu.pc]
 		cpu.pc++
 	}
-	cpu.ir = decodeOperation(cpu.ocr, operand)
+	cpu.ir = decode(cpu.ocr, operand)
 }
 
 func (cpu *CPU) execute() {
