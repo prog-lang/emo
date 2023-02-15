@@ -105,19 +105,8 @@ update msg model =
 
 updateOnEditorMsg : Editor.Msg -> Model -> ( Model, Cmd Msg )
 updateOnEditorMsg editorMsg model =
-    let
-        cmd =
-            case editorMsg of
-                Editor.LineClicked line ->
-                    line
-                        |> String.filter isHexDigit
-                        |> cpuExecuteHexInstruction
-
-                _ ->
-                    Cmd.none
-    in
     ( { model | editor = Editor.update editorMsg model.editor }
-    , cmd
+    , Cmd.none
     )
 
 
@@ -132,16 +121,20 @@ updateOnKeyboardEvent event model =
 
 
 updateOnKeyDown : KeyboardEvent -> String -> Model -> ( Model, Cmd Msg )
-updateOnKeyDown _ key model =
+updateOnKeyDown event key model =
     let
         firstChar =
             String.toList >> List.head >> Maybe.withDefault ' '
     in
     case key of
         "Enter" ->
-            ( { model | editor = Editor.update Editor.Enter model.editor }
-            , Cmd.none
-            )
+            if event.ctrlKey then
+                ( model, executeProgram model )
+
+            else
+                ( { model | editor = Editor.update Editor.Enter model.editor }
+                , Cmd.none
+                )
 
         "Backspace" ->
             ( { model
@@ -193,6 +186,14 @@ updateOnKeyDown _ key model =
                 ( model, Cmd.none )
 
 
+executeProgram : Model -> Cmd Msg
+executeProgram model =
+    model.editor
+        |> Editor.getText
+        |> String.filter isHexDigit
+        |> cpuExecuteProgramHex
+
+
 
 -- SUBSCRIPTIONS
 
@@ -213,4 +214,4 @@ subscriptions _ =
 port cpuState : (String -> msg) -> Sub msg
 
 
-port cpuExecuteHexInstruction : String -> Cmd msg
+port cpuExecuteProgramHex : String -> Cmd msg
