@@ -1,0 +1,9 @@
+version: "3"
+
+services:
+  emo:
+    container_name: emo
+    image: emo:latest
+    build: .
+    ports:
+      - 8000:8000
