@@ -15,10 +15,13 @@ function setupElm() {
   const app = Elm.Main.init({
     node: document.getElementById("app"),
   });
+
   app.ports.cpuState.send(cpu.string());
-  app.ports.cpuExecuteHexInstruction.subscribe((hex) => {
-    cpuExecuteHexInstruction(hex);
-    setTimeout(() => app.ports.cpuState.send(cpuState()), 10);
+
+  app.ports.cpuExecuteProgramHex.subscribe((hex) => {
+    cpu.loadProgramHex(hex);
+    cpu.start();
+    app.ports.cpuState.send(cpu.string());
   });
 }
 
